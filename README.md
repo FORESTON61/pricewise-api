@@ -1,68 +1,43 @@
-# PriceWise API
+# PriceWise API 🚀
 
-Backend API for the PriceWise app — helps users decide whether to Buy, Wait, or Avoid products.
+Simple backend API that tells whether you should BUY, WAIT, or AVOID a product based on price comparison.
 
----
+## Base URL
+https://your-render-url.onrender.com
 
-## 🚀 Features
+## Endpoints
 
-- Basic API server
-- Price decision endpoint (demo)
-- Health check endpoint
+### 1. Home
+GET /
+Returns API status
 
----
+### 2. Health Check
+GET /health
 
-## ⚙️ Tech Stack
-
-- Node.js
-- Express
-
----
-
-## ▶️ Run locally
-
-1. Install dependencies:
-npm install
-
-2. Start server:
-node index.js
-
-3. Open:
-http://localhost:3000
-
----
-
-## 🌐 API
-
-### GET /
-Returns:
-PriceWise API running 🚀
-
----
-
-### GET /health
-Returns:
-{ "status": "ok" }
-
----
-
-### GET /price?product=iphone
-Returns:
+Response:
 {
-  "product": "iphone",
-  "decision": "WAIT",
-  "reason": "Price tracking not implemented yet"
+  "status": "ok"
 }
 
----
+### 3. Price Decision
+GET /price?product=iphone
 
-## ⚠️ Status
+Response:
+{
+  "product": "iphone",
+  "currentPrice": 23267,
+  "lowestPrice": 18332,
+  "differencePercent": "26.92",
+  "decision": "AVOID",
+  "reason": "Price significantly higher than usual"
+}
 
-This is a starter backend.
-No real price tracking yet.
+## Logic
+- <= lowest → BUY
+- within +5% → BUY
+- +5–15% → WAIT
+- +15–25% → WAIT
+- >25% → AVOID
 
----
-
-## 👤 Author
-
-FORESTON61
+## Note
+Currently uses dummy data. Real price tracking coming next.
