@@ -1,18 +1,14 @@
 module.exports = {
   iphone: {
-    currentPrice: 23267,
-    lowestPrice: 18332
+    history: [25000, 24000, 22000, 20000, 18332, 23267]
   },
   samsung: {
-    currentPrice: 18999,
-    lowestPrice: 17999
+    history: [20000, 19500, 19000, 18500, 17999, 18999]
   },
   laptop: {
-    currentPrice: 55999,
-    lowestPrice: 49999
+    history: [60000, 58000, 55000, 52000, 49999, 55999]
   },
   headphones: {
-    currentPrice: 2999,
-    lowestPrice: 1999
+    history: [3500, 3200, 2800, 2500, 1999, 2999]
   }
 };
