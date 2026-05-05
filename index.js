@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 🔑 IMPORTANT: Paste your REAL Scrape.do key below
-const SCRAPE_DO_KEY = "PASTE_YOUR_REAL_KEY_HERE";
+const SCRAPE_DO_KEY = cc905285f3e942a09eb55538ab38f6909c3b1485772;
 
 // Root route (so "/" never shows Not Found)
 app.get("/", (req, res) => {
