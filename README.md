@@ -1,14 +1,14 @@
 # PriceWise API
 
-Backend API for the PriceWise app — a smart system that helps users decide whether to Buy, Wait, or Avoid a product based on price trends.
+Backend API for the PriceWise app — helps users decide whether to Buy, Wait, or Avoid products.
 
 ---
 
-## 🚀 What this does
+## 🚀 Features
 
-- Provides price decision logic (Buy / Wait / Avoid)
-- Serves API endpoints for mobile/web app
-- Acts as the backend brain of PriceWise
+- Basic API server
+- Price decision endpoint (demo)
+- Health check endpoint
 
 ---
 
@@ -27,35 +27,27 @@ npm install
 2. Start server:
 node index.js
 
-3. Open in browser:
+3. Open:
 http://localhost:3000
 
 ---
 
-## 🌐 API Endpoints
+## 🌐 API
 
-### Root
-GET /
-
-Response:
+### GET /
+Returns:
 PriceWise API running 🚀
 
 ---
 
-### Health Check
-GET /health
-
-Response:
-{
-  "status": "ok"
-}
+### GET /health
+Returns:
+{ "status": "ok" }
 
 ---
 
-### Price Check (Demo)
-GET /price?product=iphone
-
-Response:
+### GET /price?product=iphone
+Returns:
 {
   "product": "iphone",
   "decision": "WAIT",
@@ -64,25 +56,13 @@ Response:
 
 ---
 
-## ⚠️ Current Status
+## ⚠️ Status
 
-This is a basic backend setup.
-
-- No real price tracking yet
-- No database
-- No external API integration
-
----
-
-## 🧠 Future Plan
-
-- Integrate price history (Amazon, Flipkart, etc.)
-- Add real Buy/Wait decision engine
-- Add user wishlist & alerts
-- Optimize for scale
+This is a starter backend.
+No real price tracking yet.
 
 ---
 
 ## 👤 Author
 
-Built by FORESTON61
+FORESTON61
