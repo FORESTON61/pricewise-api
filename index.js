@@ -1,6 +1,8 @@
 const express = require("express");
 
 const app = express();
+
+// IMPORTANT for Render (dynamic port)
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -8,26 +10,28 @@ app.use(express.json());
 
 // Root route
 app.get("/", (req, res) => {
-  res.send("PriceWise API is running 🚀");
+  res.send("PriceWise API running 🚀");
 });
 
-// Health check (important for hosting + monitoring)
+// Health check
 app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.status(200).json({ status: "ok" });
 });
 
-// Example placeholder route (future logic)
+// Test endpoint (future logic)
 app.get("/price", (req, res) => {
   const product = req.query.product;
 
   if (!product) {
-    return res.status(400).json({ error: "Product is required" });
+    return res.status(400).json({
+      error: "Missing product parameter"
+    });
   }
 
   res.json({
     product,
-    decision: "WAIT", // placeholder
-    message: "Price analysis coming soon"
+    decision: "WAIT",
+    reason: "Price tracking not implemented yet"
   });
 });
 
