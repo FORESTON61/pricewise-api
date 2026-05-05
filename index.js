@@ -4,19 +4,20 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const SCRAPE_DO_KEY = cc905285f3e942a09eb55538ab38f6909c3b1485772;
+// 🔑 IMPORTANT: Paste your REAL Scrape.do key below
+const SCRAPE_DO_KEY = "PASTE_YOUR_REAL_KEY_HERE";
 
-// ROOT ROUTE (so "/" doesn't show Not Found)
+// Root route (so "/" never shows Not Found)
 app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
+  res.send("PriceWise API running 🚀");
 });
 
-// TEST ROUTE (debug)
+// Debug route
 app.get("/test", (req, res) => {
-  res.json({ status: "ok", message: "API working" });
+  res.json({ status: "ok" });
 });
 
-// PRICE ROUTE
+// Price route
 app.get("/price", async (req, res) => {
   const product = req.query.product;
 
@@ -36,10 +37,11 @@ app.get("/price", async (req, res) => {
 
     const html = response.data;
 
+    // Extract ₹ price
     const match = html.match(/₹[\d,]+/);
 
     if (!match) {
-      return res.json({ error: "Price not found in page" });
+      return res.json({ error: "Price not found" });
     }
 
     const price = parseInt(match[0].replace(/[₹,]/g, ""));
@@ -47,17 +49,17 @@ app.get("/price", async (req, res) => {
     res.json({
       product,
       currentPrice: price,
-      source: "Amazon scraped",
+      source: "Amazon (scraped)"
     });
 
-  } catch (err) {
+  } catch (error) {
     res.json({
       error: "Scraping failed",
-      details: err.message,
+      details: error.message
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });
