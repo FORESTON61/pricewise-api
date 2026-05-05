@@ -2,7 +2,7 @@ const express = require("express");
 
 const app = express();
 
-// IMPORTANT for Render (dynamic port)
+// IMPORTANT for Render
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -18,7 +18,7 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// Test endpoint (future logic)
+// Demo price endpoint
 app.get("/price", (req, res) => {
   const product = req.query.product;
 
