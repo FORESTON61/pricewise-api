@@ -1,27 +1,14 @@
 # PriceWise API
 
-Backend API for the PriceWise app — a system that helps users decide whether to BUY, WAIT, or AVOID products based on price trends.
+Backend API for the PriceWise app — a smart system that helps users decide whether to Buy, Wait, or Avoid a product based on price trends.
 
 ---
 
-## 🚀 Features (Current)
+## 🚀 What this does
 
-- Basic Express server
-- Health check endpoint
-- Placeholder price decision API
-
----
-
-## 📦 Endpoints
-
-### GET /
-Returns API status
-
-### GET /health
-Returns server health status
-
-### GET /price?product=iphone
-Returns a mock Buy/Wait/Avoid decision
+- Provides price decision logic (Buy / Wait / Avoid)
+- Serves API endpoints for mobile/web app
+- Acts as the backend brain of PriceWise
 
 ---
 
@@ -32,36 +19,70 @@ Returns a mock Buy/Wait/Avoid decision
 
 ---
 
-## ▶️ Run Locally
+## ▶️ Run locally
 
 1. Install dependencies:
-   npm install
+npm install
 
 2. Start server:
-   node index.js
+node index.js
 
-3. Open:
-   http://localhost:3000
-
----
-
-## 🌐 Live API
-
-https://pricewise-api-gmyn.onrender.com
+3. Open in browser:
+http://localhost:3000
 
 ---
 
-## 🧠 Vision
+## 🌐 API Endpoints
 
-PriceWise aims to compete with Honey/Keepa by providing:
+### Root
+GET /
 
-- Smart Buy/Wait decisions
-- Price history tracking
-- Deal discovery
-- Alerts & wishlist tracking
+Response:
+PriceWise API running 🚀
 
 ---
 
-## ⚠️ Note
+### Health Check
+GET /health
 
-This is an early backend prototype. Real price tracking logic and integrations will be added next.
+Response:
+{
+  "status": "ok"
+}
+
+---
+
+### Price Check (Demo)
+GET /price?product=iphone
+
+Response:
+{
+  "product": "iphone",
+  "decision": "WAIT",
+  "reason": "Price tracking not implemented yet"
+}
+
+---
+
+## ⚠️ Current Status
+
+This is a basic backend setup.
+
+- No real price tracking yet
+- No database
+- No external API integration
+
+---
+
+## 🧠 Future Plan
+
+- Integrate price history (Amazon, Flipkart, etc.)
+- Add real Buy/Wait decision engine
+- Add user wishlist & alerts
+- Optimize for scale
+
+---
+
+## 👤 Author
+
+Built by FORESTON61
