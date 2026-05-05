@@ -1,52 +1,55 @@
 const express = require("express");
-const data = require("./data");
-
 const app = express();
+
+const data = require("./data");
 
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.send("PriceWise API running 🚀");
-});
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.send("PriceWise API is running 🚀");
 });
 
 app.get("/price", (req, res) => {
-  const product = req.query.product;
+  const product = req.query.product?.toLowerCase();
 
   if (!product || !data[product]) {
-    return res.status(404).json({
-      error: "Product not found in dataset"
-    });
+    return res.json({ error: "Product not found in dataset" });
   }
 
-  const history = data[product].history;
-
+  const history = data[product];
   const currentPrice = history[history.length - 1];
   const lowestPrice = Math.min(...history);
 
-  const diffPercent = ((currentPrice - lowestPrice) / lowestPrice) * 100;
+  const differencePercent = (
+    ((currentPrice - lowestPrice) / lowestPrice) * 100
+  ).toFixed(2);
 
-  let decision;
-  let reason;
+  // 🔥 TREND LOGIC
+  const recent = history.slice(-3); // last 3 prices
+  let trend = "stable";
 
-  if (currentPrice <= lowestPrice) {
-    decision = "BUY";
-    reason = "Lowest price in history";
-  } else if (diffPercent <= 5) {
-    decision = "BUY";
-    reason = "Near lowest price";
-  } else if (diffPercent <= 15) {
-    decision = "WAIT";
-    reason = "Slightly higher than usual";
-  } else if (diffPercent <= 25) {
-    decision = "WAIT";
-    reason = "Moderately expensive";
-  } else {
+  if (recent[2] > recent[1] && recent[1] > recent[0]) {
+    trend = "rising";
+  } else if (recent[2] < recent[1] && recent[1] < recent[0]) {
+    trend = "falling";
+  }
+
+  // 🔥 DECISION LOGIC (UPGRADED)
+  let decision = "BUY";
+  let reason = "";
+
+  if (differencePercent > 20 && trend === "rising") {
     decision = "AVOID";
-    reason = "Too expensive compared to history";
+    reason = "Price is high and still rising";
+  } else if (differencePercent > 20 && trend === "falling") {
+    decision = "WAIT";
+    reason = "Price is high but dropping, wait more";
+  } else if (differencePercent < 10 && trend === "falling") {
+    decision = "BUY";
+    reason = "Price is low and still dropping";
+  } else {
+    decision = "WAIT";
+    reason = "No clear trend yet";
   }
 
   res.json({
@@ -54,7 +57,8 @@ app.get("/price", (req, res) => {
     currentPrice,
     lowestPrice,
     history,
-    differencePercent: diffPercent.toFixed(2),
+    trend,
+    differencePercent,
     decision,
     reason
   });
