@@ -1,27 +1,31 @@
 const express = require("express");
+const data = require("./data");
 
 const app = express();
 
-// IMPORTANT for Render
 const PORT = process.env.PORT || 3000;
 
-// Home route
+// Home
 app.get("/", (req, res) => {
   res.send("PriceWise API running 🚀");
 });
 
-// Health check
+// Health
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Price decision engine
+// Price Logic
 app.get("/price", (req, res) => {
-  const product = req.query.product || "unknown";
+  const product = req.query.product;
 
-  // TEMP DATA (will replace later with real data)
-  const currentPrice = 23267;
-  const lowestPrice = 18332;
+  if (!product || !data[product]) {
+    return res.status(404).json({
+      error: "Product not found in dataset"
+    });
+  }
+
+  const { currentPrice, lowestPrice } = data[product];
 
   const diffPercent = ((currentPrice - lowestPrice) / lowestPrice) * 100;
 
@@ -55,7 +59,7 @@ app.get("/price", (req, res) => {
   });
 });
 
-// Start server
+// Start
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
