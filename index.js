@@ -25,6 +25,7 @@ app.get("/price", (req, res) => {
       ((currentPrice - lowestPrice) / lowestPrice) * 100
     ).toFixed(2);
 
+    // 🔥 TREND LOGIC (UPGRADED)
     const recent = history.slice(-3);
     let trend = "stable";
 
@@ -32,23 +33,34 @@ app.get("/price", (req, res) => {
       trend = "rising";
     } else if (recent[2] < recent[1] && recent[1] < recent[0]) {
       trend = "falling";
+    } else if (recent[2] > recent[1] && recent[1] < recent[0]) {
+      trend = "spike_up";
+    } else if (recent[2] < recent[1] && recent[1] > recent[0]) {
+      trend = "spike_down";
     }
 
-    let decision = "BUY";
+    // 🔥 DECISION LOGIC (SMARTER)
+    let decision = "WAIT";
     let reason = "";
 
     if (differencePercent > 20 && trend === "rising") {
       decision = "AVOID";
       reason = "Price is high and still rising";
+    } else if (trend === "spike_up") {
+      decision = "AVOID";
+      reason = "Recent sudden price spike";
+    } else if (trend === "spike_down") {
+      decision = "BUY";
+      reason = "Recent drop, good opportunity";
     } else if (differencePercent > 20 && trend === "falling") {
       decision = "WAIT";
-      reason = "Price is high but dropping, wait more";
-    } else if (differencePercent < 10 && trend === "falling") {
+      reason = "Price is high but dropping";
+    } else if (differencePercent < 10) {
       decision = "BUY";
-      reason = "Price is low and still dropping";
+      reason = "Price near lowest";
     } else {
       decision = "WAIT";
-      reason = "No clear trend yet";
+      reason = "No strong signal";
     }
 
     res.json({
