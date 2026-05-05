@@ -1,24 +1,21 @@
 const express = require("express");
 
 const app = express();
-
-// IMPORTANT for Render
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 
-// Root route
+// Root
 app.get("/", (req, res) => {
   res.send("PriceWise API running 🚀");
 });
 
-// Health check
+// Health
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
+  res.json({ status: "ok" });
 });
 
-// Demo price endpoint
+// 🔥 PRICE ENGINE
 app.get("/price", (req, res) => {
   const product = req.query.product;
 
@@ -28,14 +25,41 @@ app.get("/price", (req, res) => {
     });
   }
 
+  // 🔹 Simulated price data (later replace with real APIs)
+  const currentPrice = Math.floor(Math.random() * 20000) + 5000;
+  const lowestPrice = Math.floor(Math.random() * 20000) + 3000;
+
+  // Ensure lowest <= current (realistic)
+  const realLowest = Math.min(currentPrice, lowestPrice);
+
+  // % difference
+  const diffPercent = ((currentPrice - realLowest) / realLowest) * 100;
+
+  let decision;
+  let reason;
+
+  if (diffPercent <= 5) {
+    decision = "BUY";
+    reason = "Price is near historical low";
+  } else if (diffPercent <= 20) {
+    decision = "WAIT";
+    reason = "Price is moderate, may drop";
+  } else {
+    decision = "AVOID";
+    reason = "Price is significantly higher than usual";
+  }
+
   res.json({
     product,
-    decision: "WAIT",
-    reason: "Price tracking not implemented yet"
+    currentPrice,
+    lowestPrice: realLowest,
+    differencePercent: diffPercent.toFixed(2) + "%",
+    decision,
+    reason
   });
 });
 
-// Start server
+// Start
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
