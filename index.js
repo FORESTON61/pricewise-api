@@ -5,17 +5,14 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Home
 app.get("/", (req, res) => {
   res.send("PriceWise API running 🚀");
 });
 
-// Health
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Price Logic
 app.get("/price", (req, res) => {
   const product = req.query.product;
 
@@ -25,7 +22,10 @@ app.get("/price", (req, res) => {
     });
   }
 
-  const { currentPrice, lowestPrice } = data[product];
+  const history = data[product].history;
+
+  const currentPrice = history[history.length - 1];
+  const lowestPrice = Math.min(...history);
 
   const diffPercent = ((currentPrice - lowestPrice) / lowestPrice) * 100;
 
@@ -34,32 +34,32 @@ app.get("/price", (req, res) => {
 
   if (currentPrice <= lowestPrice) {
     decision = "BUY";
-    reason = "Lowest price reached";
+    reason = "Lowest price in history";
   } else if (diffPercent <= 5) {
     decision = "BUY";
-    reason = "Close to lowest price";
+    reason = "Near lowest price";
   } else if (diffPercent <= 15) {
     decision = "WAIT";
-    reason = "Price slightly higher than usual";
+    reason = "Slightly higher than usual";
   } else if (diffPercent <= 25) {
     decision = "WAIT";
-    reason = "Price moderately high";
+    reason = "Moderately expensive";
   } else {
     decision = "AVOID";
-    reason = "Price significantly higher than usual";
+    reason = "Too expensive compared to history";
   }
 
   res.json({
     product,
     currentPrice,
     lowestPrice,
+    history,
     differencePercent: diffPercent.toFixed(2),
     decision,
     reason
   });
 });
 
-// Start
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
