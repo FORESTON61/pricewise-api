@@ -23,9 +23,9 @@ app.get("/price", (req, res) => {
 
     const differencePercent = (
       ((currentPrice - lowestPrice) / lowestPrice) * 100
-    ).toFixed(2);
+    );
 
-    // 🔥 TREND LOGIC (UPGRADED)
+    // 🔥 TREND LOGIC
     const recent = history.slice(-3);
     let trend = "stable";
 
@@ -39,7 +39,7 @@ app.get("/price", (req, res) => {
       trend = "spike_down";
     }
 
-    // 🔥 DECISION LOGIC (SMARTER)
+    // 🔥 DECISION LOGIC
     let decision = "WAIT";
     let reason = "";
 
@@ -63,14 +63,30 @@ app.get("/price", (req, res) => {
       reason = "No strong signal";
     }
 
+    // 🔥 CONFIDENCE SCORE (0–100)
+    let confidence = 50;
+
+    // distance factor
+    if (differencePercent > 30) confidence += 25;
+    else if (differencePercent > 20) confidence += 15;
+    else if (differencePercent < 10) confidence += 10;
+
+    // trend strength
+    if (trend === "spike_up" || trend === "spike_down") confidence += 20;
+    else if (trend === "rising" || trend === "falling") confidence += 10;
+
+    // cap
+    if (confidence > 100) confidence = 100;
+
     res.json({
       product,
       currentPrice,
       lowestPrice,
       history,
       trend,
-      differencePercent,
+      differencePercent: differencePercent.toFixed(2),
       decision,
+      confidence,
       reason
     });
 
