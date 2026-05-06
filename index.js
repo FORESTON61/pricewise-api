@@ -1,11 +1,12 @@
 const express = require("express");
 const axios = require("axios");
+const cheerio = require("cheerio");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔑 Your Scrape.do API Key
-const SCRAPE_DO_KEY = "cc905285f3e942a09eb55538ab38f6909c3b1485772";
+// Scrape.do API Key from Render Environment Variables
+const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY;
 
 // Homepage
 app.get("/", (req, res) => {
@@ -14,7 +15,9 @@ app.get("/", (req, res) => {
 
 // Health check
 app.get("/test", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({
+    status: "ok",
+  });
 });
 
 // Price Route
@@ -28,10 +31,10 @@ app.get("/price", async (req, res) => {
   }
 
   try {
-    // Amazon India search URL
+    // Amazon India Search URL
     const amazonURL = `https://www.amazon.in/s?k=${encodeURIComponent(product)}`;
 
-    // Scrape.do API Request
+    // Fetch HTML using Scrape.do
     const response = await axios.get("http://api.scrape.do", {
       params: {
         token: SCRAPE_DO_KEY,
@@ -41,39 +44,72 @@ app.get("/price", async (req, res) => {
 
     const html = response.data;
 
-    // Extract ALL ₹ prices from page
-    const matches = html.match(/₹[\d,]+/g);
+    // Load HTML
+    const $ = cheerio.load(html);
 
-    if (!matches || matches.length === 0) {
+    // Amazon search result cards
+    const products = $('[data-component-type="s-search-result"]');
+
+    let currentPrice = null;
+    let productTitle = null;
+    let productImage = null;
+    let productLink = null;
+
+    products.each((i, el) => {
+      if (currentPrice) return;
+
+      const title = $(el)
+        .find("h2 span")
+        .first()
+        .text()
+        .trim();
+
+      const priceText = $(el)
+        .find(".a-price-whole")
+        .first()
+        .text()
+        .replace(/,/g, "")
+        .trim();
+
+      const image = $(el)
+        .find("img")
+        .attr("src");
+
+      const href = $(el)
+        .find("h2 a")
+        .attr("href");
+
+      const link = href
+        ? `https://www.amazon.in${href}`
+        : null;
+
+      const price = parseInt(priceText);
+
+      // Ignore invalid or tiny values
+      if (
+        title &&
+        !isNaN(price) &&
+        price > 10000
+      ) {
+        currentPrice = price;
+        productTitle = title;
+        productImage = image;
+        productLink = link;
+      }
+    });
+
+    // No valid product found
+    if (!currentPrice) {
       return res.json({
-        error: "No prices found",
+        error: "No valid product found",
       });
     }
 
-    // Convert prices into numbers
-    const prices = matches.map((p) =>
-      parseInt(p.replace(/[₹,]/g, ""))
-    );
-
-    // Remove fake / tiny / unrealistic values
-    const filteredPrices = prices.filter(
-      (p) => p > 5000 && p < 200000
-    );
-
-    if (filteredPrices.length === 0) {
-      return res.json({
-        error: "No valid prices found",
-      });
-    }
-
-    // Choose lowest realistic price
-    const currentPrice = Math.min(...filteredPrices);
-
-    // Fake history for MVP logic
+    // Simulated history for now
     const history = [
       currentPrice + 8000,
       currentPrice + 5000,
-      currentPrice + 3000,
+      currentPrice + 2000,
       currentPrice + 1000,
       currentPrice,
     ];
@@ -82,12 +118,13 @@ app.get("/price", async (req, res) => {
     const lowestPrice = Math.min(...history);
 
     // Difference %
-    const differencePercent = (
-      ((currentPrice - lowestPrice) / lowestPrice) *
-      100
-    ).toFixed(2);
+    const differencePercent =
+      (
+        ((currentPrice - lowestPrice) / lowestPrice) *
+        100
+      ).toFixed(2);
 
-    // Trend detection
+    // Trend logic
     let trend = "stable";
 
     if (
@@ -97,7 +134,7 @@ app.get("/price", async (req, res) => {
       trend = "spike_up";
     }
 
-    // AI Decision Logic
+    // Decision engine
     let decision = "WAIT";
     let confidence = 70;
     let reason = "No strong signal yet";
@@ -116,7 +153,8 @@ app.get("/price", async (req, res) => {
 
     // Final Response
     res.json({
-      product,
+      searchedProduct: product,
+      productTitle,
       currentPrice,
       lowestPrice,
       history,
@@ -125,14 +163,18 @@ app.get("/price", async (req, res) => {
       decision,
       confidence,
       reason,
-      source: "Amazon (scraped)",
+      productImage,
+      productLink,
+      source: "Amazon India (scraped)",
     });
 
   } catch (error) {
+
     res.json({
       error: "Scraping failed",
       details: error.message,
     });
+
   }
 });
 
