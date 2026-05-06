@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 🔑 Your Scrape.do API Key
-const SCRAPE_DO_KEY = "PASTE_YOUR_SCRAPE_DO_KEY_HERE";
+const SCRAPE_DO_KEY = "cc905285f3e942a09eb55538ab38f6909c3b1485772";
 
 // Homepage
 app.get("/", (req, res) => {
