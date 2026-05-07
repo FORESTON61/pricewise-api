@@ -1,26 +1,52 @@
 const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
+
+// =========================
+// ENV VARIABLES
+// =========================
 
 const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY;
 
-// Homepage
+const SUPABASE_URL = process.env.SUPABASE_URL;
+
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+// =========================
+// SUPABASE
+// =========================
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+// =========================
+// HOMEPAGE
+// =========================
+
 app.get("/", (req, res) => {
   res.send("PriceWise API running 🚀");
 });
 
-// Test route
+// =========================
+// TEST ROUTE
+// =========================
+
 app.get("/test", (req, res) => {
   res.json({
     status: "ok"
   });
 });
 
-// Price route
+// =========================
+// PRICE ROUTE
+// =========================
+
 app.get("/price", async (req, res) => {
 
   const product = req.query.product;
@@ -33,11 +59,17 @@ app.get("/price", async (req, res) => {
 
   try {
 
-    // Amazon search URL
+    // =========================
+    // AMAZON SEARCH URL
+    // =========================
+
     const amazonURL =
       `https://www.amazon.in/s?k=${encodeURIComponent(product)}`;
 
-    // Fetch page
+    // =========================
+    // SCRAPE AMAZON
+    // =========================
+
     const response = await axios.get(
       "http://api.scrape.do",
       {
@@ -52,107 +84,123 @@ app.get("/price", async (req, res) => {
 
     const $ = cheerio.load(html);
 
-    const results =
+    const products =
       $('[data-component-type="s-search-result"]');
 
-    let productTitle = null;
     let currentPrice = null;
+    let productTitle = null;
     let productImage = null;
     let productLink = null;
 
-    results.each((i, el) => {
+    // =========================
+    // FIND PRODUCT
+    // =========================
+
+    products.each((i, el) => {
 
       if (currentPrice) return;
 
-      // Title
       const title = $(el)
-        .find("h2")
+        .find("h2 span")
+        .first()
         .text()
         .trim();
 
-      // Price
-      const whole = $(el)
+      const priceText = $(el)
         .find(".a-price-whole")
         .first()
         .text()
         .replace(/,/g, "")
         .trim();
 
-      const fraction = $(el)
-        .find(".a-price-fraction")
-        .first()
-        .text()
-        .trim();
-
-      const fullPrice =
-        `${whole}${fraction}`;
-
-      const price = parseInt(fullPrice);
-
-      // Image
       const image = $(el)
-        .find("img.s-image")
+        .find("img")
         .attr("src");
 
-      // NEW BETTER LINK SELECTOR
-      let href = $(el)
-        .find("a.a-link-normal")
+      const href = $(el)
+        .find("h2 a")
         .attr("href");
 
-      // Backup selector
-      if (!href) {
-        href = $(el)
-          .find("h2 a")
-          .attr("href");
-      }
-
-      // Build full link
       const link = href
         ? `https://www.amazon.in${href}`
         : null;
 
-      // Validate product
+      const price = parseInt(priceText);
+
+      // ignore invalid prices
+
       if (
         title &&
         !isNaN(price) &&
-        price > 10000
+        price > 1000
       ) {
-
-        productTitle = title;
-
         currentPrice = price;
-
+        productTitle = title;
         productImage = image;
-
         productLink = link;
-
       }
 
     });
 
-    // No valid product
-    if (!currentPrice) {
+    // =========================
+    // NO PRODUCT FOUND
+    // =========================
 
+    if (!currentPrice) {
       return res.json({
         error: "No valid product found"
       });
-
     }
 
-    // Temporary fake history
-    const history = [
-      currentPrice + 8000,
-      currentPrice + 5000,
-      currentPrice + 2500,
-      currentPrice + 1000,
-      currentPrice
-    ];
+    // =========================
+    // SAVE PRICE TO SUPABASE
+    // =========================
 
-    // Lowest price
+    await supabase
+      .from("price_history")
+      .insert([
+        {
+          product: product.toLowerCase(),
+          price: currentPrice
+        }
+      ]);
+
+    // =========================
+    // GET HISTORY FROM DATABASE
+    // =========================
+
+    const { data, error } = await supabase
+      .from("price_history")
+      .select("*")
+      .eq("product", product.toLowerCase())
+      .order("created_at", {
+        ascending: true
+      });
+
+    if (error) {
+      return res.json({
+        error: error.message
+      });
+    }
+
+    // =========================
+    // CREATE HISTORY ARRAY
+    // =========================
+
+    const history =
+      data.map(item => item.price);
+
+    // =========================
+    // LOWEST PRICE
+    // =========================
+
     const lowestPrice =
       Math.min(...history);
 
-    // Difference %
+    // =========================
+    // DIFFERENCE %
+    // =========================
+
     const differencePercent =
       (
         (
@@ -161,43 +209,56 @@ app.get("/price", async (req, res) => {
         ) * 100
       ).toFixed(2);
 
-    // Trend
+    // =========================
+    // TREND
+    // =========================
+
     let trend = "stable";
 
     if (
-      history[history.length - 1]
-      >
-      history[history.length - 2]
+      history.length >= 2
     ) {
-      trend = "spike_up";
+
+      const latest =
+        history[history.length - 1];
+
+      const previous =
+        history[history.length - 2];
+
+      if (latest > previous) {
+        trend = "spike_up";
+      }
+
+      if (latest < previous) {
+        trend = "drop";
+      }
+
     }
 
-    // Decision
+    // =========================
+    // DECISION SYSTEM
+    // =========================
+
     let decision = "WAIT";
     let confidence = 70;
     let reason = "No strong signal yet";
 
     if (trend === "spike_up") {
-
       decision = "AVOID";
-
       confidence = 85;
-
       reason = "Recent sudden price spike";
-
     }
 
     if (differencePercent < 5) {
-
       decision = "BUY";
-
       confidence = 90;
-
       reason = "Price near historical low";
-
     }
 
-    // Final response
+    // =========================
+    // FINAL RESPONSE
+    // =========================
+
     res.json({
 
       searchedProduct: product,
@@ -224,25 +285,25 @@ app.get("/price", async (req, res) => {
 
       productLink,
 
-      source: "Amazon India (scraped)"
+      source: "Amazon India (real history)"
 
     });
 
   } catch (error) {
 
     res.json({
-
       error: "Scraping failed",
-
       details: error.message
-
     });
 
   }
 
 });
 
-// Start server
+// =========================
+// START SERVER
+// =========================
+
 app.listen(PORT, () => {
 
   console.log(
