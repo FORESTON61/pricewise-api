@@ -247,6 +247,20 @@ app.get("/price", async (req, res) => {
         title.toLowerCase();
 
       // =========================
+      // SKIP SPONSORED PRODUCTS
+      // =========================
+
+      const sponsoredText = $(el)
+        .text()
+        .toLowerCase();
+
+      if (
+        sponsoredText.includes("sponsored")
+      ) {
+        return;
+      }
+
+      // =========================
       // BRAND FILTERS
       // =========================
 
@@ -330,11 +344,38 @@ app.get("/price", async (req, res) => {
 
       });
 
+      // =========================
+      // EXACT MATCH BONUS
+      // =========================
+
       if (
         titleLower.includes(product.toLowerCase())
       ) {
-        score += 10;
+        score += 25;
       }
+
+      // =========================
+      // PENALIZE BAD TITLES
+      // =========================
+
+      const badWords = [
+        "renewed",
+        "refurbished",
+        "mini",
+        "combo",
+        "pack",
+        "replacement"
+      ];
+
+      badWords.forEach(word => {
+
+        if (
+          titleLower.includes(word)
+        ) {
+          score -= 10;
+        }
+
+      });
 
       // =========================
       // PRICE
@@ -497,6 +538,48 @@ app.get("/price", async (req, res) => {
       Math.min(...history);
 
     // =========================
+    // CHECK ALERTS
+    // =========================
+
+    const { data: alerts } =
+      await supabase
+        .from("alerts")
+        .select("*")
+        .eq(
+          "product_slug",
+          productSlug
+        )
+        .eq(
+          "is_active",
+          true
+        );
+
+    let triggeredAlerts = [];
+
+    if (alerts) {
+
+      alerts.forEach(alert => {
+
+        if (
+          bestProduct.price <=
+          alert.target_price
+        ) {
+
+          triggeredAlerts.push({
+            targetPrice:
+              alert.target_price,
+
+            currentPrice:
+              bestProduct.price
+          });
+
+        }
+
+      });
+
+    }
+
+    // =========================
     // DIFFERENCE %
     // =========================
 
@@ -603,6 +686,8 @@ app.get("/price", async (req, res) => {
 
       productLink:
         bestProduct.link,
+
+      triggeredAlerts,
 
       source:
         "Amazon India (smart matching)",
