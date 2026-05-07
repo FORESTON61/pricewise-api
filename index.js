@@ -9,6 +9,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // =========================
+// SIMPLE CACHE
+// =========================
+
+const cache = {};
+
+// =========================
 // RATE LIMITER
 // =========================
 
@@ -21,7 +27,7 @@ const limiter = rateLimit({
   }
 });
 
-// Apply limiter to all routes
+// Apply limiter
 app.use(limiter);
 
 // =========================
@@ -98,6 +104,31 @@ app.get("/price", async (req, res) => {
         .replace(/[^a-z0-9 ]/g, "")
         .trim()
         .replace(/\s+/g, "-");
+
+    // =========================
+    // CACHE CHECK
+    // =========================
+
+    const cachedData =
+      cache[productSlug];
+
+    if (cachedData) {
+
+      const cacheAge =
+        Date.now() - cachedData.timestamp;
+
+      // 5 minute cache
+
+      if (cacheAge < 5 * 60 * 1000) {
+
+        return res.json({
+          ...cachedData.data,
+          cached: true
+        });
+
+      }
+
+    }
 
     // =========================
     // SCRAPE PAGE
@@ -475,7 +506,7 @@ app.get("/price", async (req, res) => {
     // FINAL RESPONSE
     // =========================
 
-    res.json({
+    const finalData = {
 
       searchedProduct:
         product,
@@ -509,9 +540,27 @@ app.get("/price", async (req, res) => {
         bestProduct.link,
 
       source:
-        "Amazon India (smart matching)"
+        "Amazon India (smart matching)",
 
-    });
+      cached: false
+
+    };
+
+    // =========================
+    // SAVE TO CACHE
+    // =========================
+
+    cache[productSlug] = {
+
+      timestamp:
+        Date.now(),
+
+      data:
+        finalData
+
+    };
+
+    res.json(finalData);
 
   } catch (error) {
 
