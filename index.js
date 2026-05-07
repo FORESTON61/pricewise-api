@@ -115,8 +115,53 @@ app.get("/price", async (req, res) => {
         .text()
         .trim();
 
+      if (!title) {
+        return;
+      }
+
       const titleLower =
         title.toLowerCase();
+
+      // =========================
+      // BRAND FILTERS
+      // =========================
+
+      if (
+        product.toLowerCase().includes("iphone")
+      ) {
+
+        if (
+          !titleLower.includes("iphone") &&
+          !titleLower.includes("apple")
+        ) {
+          return;
+        }
+
+      }
+
+      if (
+        product.toLowerCase().includes("samsung")
+      ) {
+
+        if (
+          !titleLower.includes("samsung")
+        ) {
+          return;
+        }
+
+      }
+
+      if (
+        product.toLowerCase().includes("airpods")
+      ) {
+
+        if (
+          !titleLower.includes("airpods")
+        ) {
+          return;
+        }
+
+      }
 
       // =========================
       // SKIP BAD PRODUCTS
@@ -131,7 +176,11 @@ app.get("/price", async (req, res) => {
         "tempered",
         "refurbished",
         "renewed",
-        "adapter"
+        "adapter",
+        "skin",
+        "back cover",
+        "bumper",
+        "guard"
       ];
 
       const containsBlocked =
@@ -150,12 +199,30 @@ app.get("/price", async (req, res) => {
       let score = 0;
 
       searchWords.forEach(word => {
+
         if (
           titleLower.includes(word)
         ) {
-          score++;
+          score += 2;
         }
+
       });
+
+      // =========================
+      // EXTRA SMART SCORING
+      // =========================
+
+      if (
+        titleLower.includes(product.toLowerCase())
+      ) {
+        score += 10;
+      }
+
+      if (
+        titleLower.includes("5g")
+      ) {
+        score += 1;
+      }
 
       // =========================
       // PRICE
@@ -191,7 +258,7 @@ app.get("/price", async (req, res) => {
       // =========================
 
       const href = $(el)
-        .find("a.a-link-normal")
+        .find("h2 a")
         .attr("href");
 
       const link = href
