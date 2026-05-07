@@ -298,23 +298,50 @@ app.get("/price", async (req, res) => {
     }
 
     // =========================
-    // SAVE TO DATABASE
+    // GET LAST SAVED PRICE
     // =========================
 
-    await supabase
-      .from("price_history")
-      .insert([
-        {
-          product:
-            productSlug,
+    const { data: latestData } =
+      await supabase
+        .from("price_history")
+        .select("*")
+        .eq(
+          "product_slug",
+          productSlug
+        )
+        .order("created_at", {
+          ascending: false
+        })
+        .limit(1);
 
-          product_slug:
-            productSlug,
+    // =========================
+    // INSERT ONLY IF PRICE CHANGED
+    // =========================
 
-          price:
-            bestProduct.price
-        }
-      ]);
+    const latestEntry =
+      latestData?.[0];
+
+    if (
+      !latestEntry ||
+      latestEntry.price !== bestProduct.price
+    ) {
+
+      await supabase
+        .from("price_history")
+        .insert([
+          {
+            product:
+              productSlug,
+
+            product_slug:
+              productSlug,
+
+            price:
+              bestProduct.price
+          }
+        ]);
+
+    }
 
     // =========================
     // GET HISTORY
