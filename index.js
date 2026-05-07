@@ -4,17 +4,21 @@ const cheerio = require("cheerio");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
 // =========================
 // ENV VARIABLES
 // =========================
 
-const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY;
+const SCRAPE_DO_KEY =
+  process.env.SCRAPE_DO_KEY;
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL =
+  process.env.SUPABASE_URL;
 
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_KEY =
+  process.env.SUPABASE_KEY;
 
 // =========================
 // SUPABASE
@@ -34,7 +38,7 @@ app.get("/", (req, res) => {
 });
 
 // =========================
-// TEST ROUTE
+// TEST
 // =========================
 
 app.get("/test", (req, res) => {
@@ -49,7 +53,8 @@ app.get("/test", (req, res) => {
 
 app.get("/price", async (req, res) => {
 
-  const product = req.query.product;
+  const product =
+    req.query.product;
 
   if (!product) {
     return res.json({
@@ -60,14 +65,14 @@ app.get("/price", async (req, res) => {
   try {
 
     // =========================
-    // AMAZON SEARCH URL
+    // SEARCH URL
     // =========================
 
     const amazonURL =
       `https://www.amazon.in/s?k=${encodeURIComponent(product)}`;
 
     // =========================
-    // SCRAPE AMAZON
+    // SCRAPE PAGE
     // =========================
 
     const response = await axios.get(
@@ -87,24 +92,74 @@ app.get("/price", async (req, res) => {
     const products =
       $('[data-component-type="s-search-result"]');
 
-    let currentPrice = null;
-    let productTitle = null;
-    let productImage = null;
-    let productLink = null;
+    // =========================
+    // SEARCH WORDS
+    // =========================
+
+    const searchWords =
+      product
+        .toLowerCase()
+        .split(" ");
+
+    let bestProduct = null;
 
     // =========================
-    // FIND PRODUCT
+    // LOOP PRODUCTS
     // =========================
 
     products.each((i, el) => {
-
-      if (currentPrice) return;
 
       const title = $(el)
         .find("h2 span")
         .first()
         .text()
         .trim();
+
+      const titleLower =
+        title.toLowerCase();
+
+      // =========================
+      // SKIP BAD PRODUCTS
+      // =========================
+
+      const blockedWords = [
+        "cover",
+        "case",
+        "charger",
+        "cable",
+        "protector",
+        "tempered",
+        "refurbished",
+        "renewed",
+        "adapter"
+      ];
+
+      const containsBlocked =
+        blockedWords.some(word =>
+          titleLower.includes(word)
+        );
+
+      if (containsBlocked) {
+        return;
+      }
+
+      // =========================
+      // MATCH SCORE
+      // =========================
+
+      let score = 0;
+
+      searchWords.forEach(word => {
+        if (
+          titleLower.includes(word)
+        ) {
+          score++;
+        }
+      });
+
+      // =========================
+      // PRICE
+      // =========================
 
       const priceText = $(el)
         .find(".a-price-whole")
@@ -113,82 +168,116 @@ app.get("/price", async (req, res) => {
         .replace(/,/g, "")
         .trim();
 
+      const price =
+        parseInt(priceText);
+
+      if (
+        isNaN(price) ||
+        price < 1000
+      ) {
+        return;
+      }
+
+      // =========================
+      // IMAGE
+      // =========================
+
       const image = $(el)
         .find("img")
         .attr("src");
 
+      // =========================
+      // LINK
+      // =========================
+
       const href = $(el)
-        .find("h2 a")
+        .find("a.a-link-normal")
         .attr("href");
 
       const link = href
         ? `https://www.amazon.in${href}`
         : null;
 
-      const price = parseInt(priceText);
-
-      // ignore invalid prices
+      // =========================
+      // SAVE BEST MATCH
+      // =========================
 
       if (
-        title &&
-        !isNaN(price) &&
-        price > 1000
+        !bestProduct ||
+        score > bestProduct.score
       ) {
-        currentPrice = price;
-        productTitle = title;
-        productImage = image;
-        productLink = link;
+
+        bestProduct = {
+          score,
+          title,
+          price,
+          image,
+          link
+        };
+
       }
 
     });
 
     // =========================
-    // NO PRODUCT FOUND
+    // NO PRODUCT
     // =========================
 
-    if (!currentPrice) {
+    if (!bestProduct) {
+
       return res.json({
         error: "No valid product found"
       });
+
     }
 
     // =========================
-    // SAVE PRICE TO SUPABASE
+    // SAVE TO DATABASE
     // =========================
 
     await supabase
       .from("price_history")
       .insert([
         {
-          product: product.toLowerCase(),
-          price: currentPrice
+          product:
+            product.toLowerCase(),
+          price:
+            bestProduct.price
         }
       ]);
 
     // =========================
-    // GET HISTORY FROM DATABASE
+    // GET HISTORY
     // =========================
 
-    const { data, error } = await supabase
-      .from("price_history")
-      .select("*")
-      .eq("product", product.toLowerCase())
-      .order("created_at", {
-        ascending: true
-      });
+    const { data, error } =
+      await supabase
+        .from("price_history")
+        .select("*")
+        .eq(
+          "product",
+          product.toLowerCase()
+        )
+        .order("created_at", {
+          ascending: true
+        });
 
     if (error) {
+
       return res.json({
         error: error.message
       });
+
     }
 
     // =========================
-    // CREATE HISTORY ARRAY
+    // HISTORY ARRAY
     // =========================
 
     const history =
-      data.map(item => item.price);
+      data.map(item =>
+        item.price
+      );
 
     // =========================
     // LOWEST PRICE
@@ -204,8 +293,10 @@ app.get("/price", async (req, res) => {
     const differencePercent =
       (
         (
-          (currentPrice - lowestPrice)
-          / lowestPrice
+          (
+            bestProduct.price -
+            lowestPrice
+          ) / lowestPrice
         ) * 100
       ).toFixed(2);
 
@@ -236,23 +327,34 @@ app.get("/price", async (req, res) => {
     }
 
     // =========================
-    // DECISION SYSTEM
+    // DECISION
     // =========================
 
     let decision = "WAIT";
     let confidence = 70;
-    let reason = "No strong signal yet";
+    let reason =
+      "No strong signal yet";
 
     if (trend === "spike_up") {
+
       decision = "AVOID";
+
       confidence = 85;
-      reason = "Recent sudden price spike";
+
+      reason =
+        "Recent sudden price spike";
+
     }
 
     if (differencePercent < 5) {
+
       decision = "BUY";
+
       confidence = 90;
-      reason = "Price near historical low";
+
+      reason =
+        "Price near historical low";
+
     }
 
     // =========================
@@ -261,11 +363,14 @@ app.get("/price", async (req, res) => {
 
     res.json({
 
-      searchedProduct: product,
+      searchedProduct:
+        product,
 
-      productTitle,
+      productTitle:
+        bestProduct.title,
 
-      currentPrice,
+      currentPrice:
+        bestProduct.price,
 
       lowestPrice,
 
@@ -281,19 +386,25 @@ app.get("/price", async (req, res) => {
 
       reason,
 
-      productImage,
+      productImage:
+        bestProduct.image,
 
-      productLink,
+      productLink:
+        bestProduct.link,
 
-      source: "Amazon India (real history)"
+      source:
+        "Amazon India (smart matching)"
 
     });
 
   } catch (error) {
 
     res.json({
+
       error: "Scraping failed",
+
       details: error.message
+
     });
 
   }
