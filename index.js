@@ -6,7 +6,6 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Scrape.do API key from Render
 const SCRAPE_DO_KEY = process.env.SCRAPE_DO_KEY;
 
 // Homepage
@@ -38,7 +37,7 @@ app.get("/price", async (req, res) => {
     const amazonURL =
       `https://www.amazon.in/s?k=${encodeURIComponent(product)}`;
 
-    // Scrape.do request
+    // Fetch page
     const response = await axios.get(
       "http://api.scrape.do",
       {
@@ -51,10 +50,8 @@ app.get("/price", async (req, res) => {
 
     const html = response.data;
 
-    // Load HTML
     const $ = cheerio.load(html);
 
-    // Amazon search result cards
     const results =
       $('[data-component-type="s-search-result"]');
 
@@ -63,13 +60,11 @@ app.get("/price", async (req, res) => {
     let productImage = null;
     let productLink = null;
 
-    // Loop products
     results.each((i, el) => {
 
-      // Stop after finding first valid product
       if (currentPrice) return;
 
-      // Full title
+      // Title
       const title = $(el)
         .find("h2")
         .text()
@@ -99,16 +94,24 @@ app.get("/price", async (req, res) => {
         .find("img.s-image")
         .attr("src");
 
-      // Link
-      const href = $(el)
-        .find("h2 a")
+      // NEW BETTER LINK SELECTOR
+      let href = $(el)
+        .find("a.a-link-normal")
         .attr("href");
 
+      // Backup selector
+      if (!href) {
+        href = $(el)
+          .find("h2 a")
+          .attr("href");
+      }
+
+      // Build full link
       const link = href
         ? `https://www.amazon.in${href}`
         : null;
 
-      // Validate
+      // Validate product
       if (
         title &&
         !isNaN(price) &&
@@ -127,7 +130,7 @@ app.get("/price", async (req, res) => {
 
     });
 
-    // If no product found
+    // No valid product
     if (!currentPrice) {
 
       return res.json({
@@ -136,7 +139,7 @@ app.get("/price", async (req, res) => {
 
     }
 
-    // Temporary simulated history
+    // Temporary fake history
     const history = [
       currentPrice + 8000,
       currentPrice + 5000,
@@ -169,7 +172,7 @@ app.get("/price", async (req, res) => {
       trend = "spike_up";
     }
 
-    // Decision engine
+    // Decision
     let decision = "WAIT";
     let confidence = 70;
     let reason = "No strong signal yet";
@@ -194,7 +197,7 @@ app.get("/price", async (req, res) => {
 
     }
 
-    // Final JSON
+    // Final response
     res.json({
 
       searchedProduct: product,
