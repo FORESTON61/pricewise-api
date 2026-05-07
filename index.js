@@ -72,6 +72,17 @@ app.get("/price", async (req, res) => {
       `https://www.amazon.in/s?k=${encodeURIComponent(product)}`;
 
     // =========================
+    // PRODUCT SLUG
+    // =========================
+
+    const productSlug =
+      product
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+
+    // =========================
     // SCRAPE PAGE
     // =========================
 
@@ -178,8 +189,6 @@ app.get("/price", async (req, res) => {
         "renewed",
         "adapter",
         "skin",
-        "back cover",
-        "bumper",
         "guard"
       ];
 
@@ -208,20 +217,10 @@ app.get("/price", async (req, res) => {
 
       });
 
-      // =========================
-      // EXTRA SMART SCORING
-      // =========================
-
       if (
         titleLower.includes(product.toLowerCase())
       ) {
         score += 10;
-      }
-
-      if (
-        titleLower.includes("5g")
-      ) {
-        score += 1;
       }
 
       // =========================
@@ -307,7 +306,11 @@ app.get("/price", async (req, res) => {
       .insert([
         {
           product:
-            product.toLowerCase(),
+            productSlug,
+
+          product_slug:
+            productSlug,
+
           price:
             bestProduct.price
         }
@@ -322,8 +325,8 @@ app.get("/price", async (req, res) => {
         .from("price_history")
         .select("*")
         .eq(
-          "product",
-          product.toLowerCase()
+          "product_slug",
+          productSlug
         )
         .order("created_at", {
           ascending: true
@@ -432,6 +435,8 @@ app.get("/price", async (req, res) => {
 
       searchedProduct:
         product,
+
+      productSlug,
 
       productTitle:
         bestProduct.title,
