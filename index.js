@@ -1,11 +1,28 @@
 const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
+const rateLimit = require("express-rate-limit");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+
+// =========================
+// RATE LIMITER
+// =========================
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: {
+    error:
+      "Too many requests. Please wait 1 minute."
+  }
+});
+
+// Apply limiter to all routes
+app.use(limiter);
 
 // =========================
 // ENV VARIABLES
@@ -175,7 +192,7 @@ app.get("/price", async (req, res) => {
       }
 
       // =========================
-      // SKIP BAD PRODUCTS
+      // BLOCK BAD PRODUCTS
       // =========================
 
       const blockedWords = [
@@ -315,7 +332,7 @@ app.get("/price", async (req, res) => {
         .limit(1);
 
     // =========================
-    // INSERT ONLY IF PRICE CHANGED
+    // INSERT ONLY IF CHANGED
     // =========================
 
     const latestEntry =
