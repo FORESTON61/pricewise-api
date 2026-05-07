@@ -27,7 +27,6 @@ const limiter = rateLimit({
   }
 });
 
-// Apply limiter
 app.use(limiter);
 
 // =========================
@@ -68,6 +67,74 @@ app.get("/test", (req, res) => {
   res.json({
     status: "ok"
   });
+});
+
+// =========================
+// CREATE ALERT
+// =========================
+
+app.get("/create-alert", async (req, res) => {
+
+  const product =
+    req.query.product;
+
+  const targetPrice =
+    parseInt(req.query.price);
+
+  if (
+    !product ||
+    !targetPrice
+  ) {
+
+    return res.json({
+      error:
+        "Missing product or price"
+    });
+
+  }
+
+  const productSlug =
+    product
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+
+  const { error } =
+    await supabase
+      .from("alerts")
+      .insert([
+        {
+          product_slug:
+            productSlug,
+
+          target_price:
+            targetPrice
+        }
+      ]);
+
+  if (error) {
+
+    return res.json({
+      error:
+        error.message
+    });
+
+  }
+
+  res.json({
+
+    success: true,
+
+    message:
+      "Alert created successfully",
+
+    productSlug,
+
+    targetPrice
+
+  });
+
 });
 
 // =========================
@@ -116,8 +183,6 @@ app.get("/price", async (req, res) => {
 
       const cacheAge =
         Date.now() - cachedData.timestamp;
-
-      // 5 minute cache
 
       if (cacheAge < 5 * 60 * 1000) {
 
