@@ -1,138 +1,79 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
-module.exports = (supabase) => {
+module.exports = (
+  supabase
+) => {
 
-  const router = express.Router();
+  const router =
+    express.Router();
 
-  const JWT_SECRET =
-    process.env.JWT_SECRET ||
-    "pricewise_secret_key";
+  // =========================
+  // LOGIN
+  // =========================
 
-  router.get("/login", async (req, res) => {
+  router.post(
+    "/login",
 
-    try {
+    async (req, res) => {
 
-      const email =
-        req.query.email;
+      try {
 
-      const password =
-        req.query.password;
+        const {
+          email,
+          password
+        } = req.body;
 
-      if (
-        !email ||
-        !password
-      ) {
+        if (
+          !email ||
+          !password
+        ) {
 
-        return res.json({
-          error:
-            "Email and password required"
-        });
+          return res.json({
+            error:
+              "Email and password required"
+          });
 
-      }
-
-      // =========================
-      // FIND USER
-      // =========================
-
-      const {
-        data: user,
-        error
-      } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", email)
-        .single();
-
-      if (
-        error ||
-        !user
-      ) {
-
-        return res.json({
-          error:
-            "Invalid email or password"
-        });
-
-      }
-
-      // =========================
-      // CHECK PASSWORD
-      // =========================
-
-      const passwordMatch =
-        await bcrypt.compare(
-          password,
-          user.password
-        );
-
-      if (!passwordMatch) {
-
-        return res.json({
-          error:
-            "Invalid email or password"
-        });
-
-      }
-
-      // =========================
-      // GENERATE JWT TOKEN
-      // =========================
-
-      const token =
-        jwt.sign(
-
-          {
-            id:
-              user.id,
-
-            email:
-              user.email
-          },
-
-          JWT_SECRET,
-
-          {
-            expiresIn:
-              "7d"
-          }
-
-        );
-
-      // =========================
-      // SUCCESS
-      // =========================
-
-      res.json({
-
-        success: true,
-
-        message:
-          "Login successful",
-
-        token,
-
-        user: {
-          id:
-            user.id,
-
-          email:
-            user.email
         }
 
-      });
+        const {
+          data,
+          error
+        } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
 
-    } catch (error) {
+        if (error) {
 
-      res.json({
-        error:
-          error.message
-      });
+          return res.json({
+            error:
+              error.message
+          });
+
+        }
+
+        res.json({
+          success: true,
+
+          token:
+            data.session.access_token,
+
+          user:
+            data.user
+        });
+
+      } catch (error) {
+
+        res.json({
+          error:
+            error.message
+        });
+
+      }
 
     }
-
-  });
+  );
 
   return router;
 
