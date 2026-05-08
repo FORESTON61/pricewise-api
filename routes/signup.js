@@ -1,9 +1,14 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 module.exports = (supabase) => {
 
   const router = express.Router();
+
+  const JWT_SECRET =
+    process.env.JWT_SECRET ||
+    "pricewise_secret_key";
 
   router.get("/signup", async (req, res) => {
 
@@ -62,16 +67,20 @@ module.exports = (supabase) => {
       // INSERT USER
       // =========================
 
-      const { error } =
-        await supabase
-          .from("users")
-          .insert([
-            {
-              email,
-              password:
-                hashedPassword
-            }
-          ]);
+      const {
+        data,
+        error
+      } = await supabase
+        .from("users")
+        .insert([
+          {
+            email,
+            password:
+              hashedPassword
+          }
+        ])
+        .select()
+        .single();
 
       if (error) {
 
@@ -82,12 +91,50 @@ module.exports = (supabase) => {
 
       }
 
+      // =========================
+      // GENERATE JWT TOKEN
+      // =========================
+
+      const token =
+        jwt.sign(
+
+          {
+            id:
+              data.id,
+
+            email:
+              data.email
+          },
+
+          JWT_SECRET,
+
+          {
+            expiresIn:
+              "7d"
+          }
+
+        );
+
+      // =========================
+      // SUCCESS
+      // =========================
+
       res.json({
 
         success: true,
 
         message:
-          "Signup successful"
+          "Signup successful",
+
+        token,
+
+        user: {
+          id:
+            data.id,
+
+          email:
+            data.email
+        }
 
       });
 
