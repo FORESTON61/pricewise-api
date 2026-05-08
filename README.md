@@ -1,43 +1,58 @@
 # PriceWise API 🚀
 
-Simple backend API that tells whether you should BUY, WAIT, or AVOID a product based on price comparison.
+Smart product price tracking and decision engine.
 
-## Base URL
-https://your-render-url.onrender.com
+## Features
 
-## Endpoints
+- Real Amazon India scraping
+- Smart product matching
+- Historical price tracking
+- JWT authentication
+- Protected routes
+- User accounts
+- Wishlist system
+- Price alerts
+- AI buy/wait decisions
+- Rate limiting
+- Caching
+- Modular backend architecture
 
-### 1. Home
-GET /
-Returns API status
+---
 
-### 2. Health Check
-GET /health
+# Tech Stack
 
-Response:
-{
-  "status": "ok"
-}
+- Node.js
+- Express.js
+- Supabase
+- JWT
+- Cheerio
+- Axios
+- Render
 
-### 3. Price Decision
-GET /price?product=iphone
+---
 
-Response:
-{
-  "product": "iphone",
-  "currentPrice": 23267,
-  "lowestPrice": 18332,
-  "differencePercent": "26.92",
-  "decision": "AVOID",
-  "reason": "Price significantly higher than usual"
-}
+# Folder Structure
 
-## Logic
-- <= lowest → BUY
-- within +5% → BUY
-- +5–15% → WAIT
-- +15–25% → WAIT
-- >25% → AVOID
+```txt
+middleware/
+  auth.js
 
-## Note
-Currently uses dummy data. Real price tracking coming next.
+routes/
+  alerts.js
+  auth.js
+  login.js
+  products.js
+  profile.js
+  signup.js
+  wishlist.js
+
+services/
+  aiDecision.js
+  notifications.js
+  scraper.js
+
+utils/
+  cache.js
+  helpers.js
+
+index.js
