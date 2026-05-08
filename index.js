@@ -10,6 +10,9 @@ const signupRoute =
 const loginRoute =
   require("./routes/login");
 
+const alertsRoute =
+  require("./routes/alerts");
+
 const authMiddleware =
   require("./middleware/auth");
 
@@ -72,6 +75,13 @@ app.use(
 app.use(
   "/",
   loginRoute(supabase)
+);
+app.use(
+  "/",
+  alertsRoute(
+    supabase,
+    authMiddleware
+  )
 );
 
 // =========================
