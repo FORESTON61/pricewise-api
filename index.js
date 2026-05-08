@@ -128,70 +128,17 @@ app.get(
   }
 );
 
-// =========================
-// CREATE ALERT
-// =========================
-app.get("/create-alert", async (req, res) => {
+// ========================
+// ALERT ROUTES
+// ========================
 
-  const product =
-    req.query.product;
-
-  const targetPrice =
-    parseInt(req.query.price);
-
-  if (
-    !product ||
-    !targetPrice
-  ) {
-
-    return res.json({
-      error:
-        "Missing product or price"
-    });
-
-  }
-
-  const productSlug =
-    product
-      .toLowerCase()
-      .replace(/[^a-z0-9 ]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
-
-  const { error } =
-    await supabase
-      .from("alerts")
-      .insert([
-        {
-          product_slug:
-            productSlug,
-
-          target_price:
-            targetPrice
-        }
-      ]);
-
-  if (error) {
-
-    return res.json({
-      error:
-        error.message
-    });
-
-  }
-
-  res.json({
-
-    success: true,
-
-    message:
-      "Alert created successfully",
-
-    productSlug,
-
-    targetPrice
-
-  });
+app.use(
+  "/",
+  alertsRoute(
+    supabase,
+    authMiddleware
+  )
+);
 
 });
 
