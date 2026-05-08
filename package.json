@@ -1,7 +1,7 @@
 {
   "name": "pricewise-api",
   "version": "1.0.0",
-  "description": "PriceWise backend",
+  "description": "PriceWise smart product tracking backend",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
