@@ -4,6 +4,12 @@ const cheerio = require("cheerio");
 const rateLimit = require("express-rate-limit");
 const { createClient } = require("@supabase/supabase-js");
 
+const signupRoute =
+  require("./routes/signup");
+
+const loginRoute =
+  require("./routes/login");
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -49,6 +55,20 @@ const SUPABASE_KEY =
 const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_KEY
+);
+
+// =========================
+// AUTH ROUTES
+// =========================
+
+app.use(
+  "/",
+  signupRoute(supabase)
+);
+
+app.use(
+  "/",
+  loginRoute(supabase)
 );
 
 // =========================
