@@ -12,8 +12,8 @@ module.exports = (
   // CREATE ALERT
   // =========================
 
-  router.get(
-    "/create-alert",
+  router.post(
+    "/alerts",
 
     authMiddleware,
 
@@ -21,32 +21,27 @@ module.exports = (
 
       try {
 
-        const product =
-          req.query.product;
-
-        const targetPrice =
-          parseInt(req.query.price);
+        const {
+          productSlug,
+          targetPrice
+        } = req.body;
 
         if (
-          !product ||
+          !productSlug ||
           !targetPrice
         ) {
 
           return res.json({
             error:
-              "Missing product or price"
+              "Missing productSlug or targetPrice"
           });
 
         }
 
-        const productSlug =
-          product
-            .toLowerCase()
-            .replace(/[^a-z0-9 ]/g, "")
-            .trim()
-            .replace(/\s+/g, "-");
-
-        const { error } =
+        const {
+          data,
+          error
+        } =
           await supabase
             .from("alerts")
             .insert([
@@ -58,9 +53,13 @@ module.exports = (
                   productSlug,
 
                 target_price:
-                  targetPrice
+                  targetPrice,
+
+                is_active:
+                  true
               }
-            ]);
+            ])
+            .select();
 
         if (error) {
 
@@ -72,19 +71,67 @@ module.exports = (
         }
 
         res.json({
-
           success: true,
+          alert:
+            data[0]
+        });
 
-          message:
-            "Alert created successfully",
+      } catch (error) {
 
-          userId:
-            req.user.id,
+        res.json({
+          error:
+            error.message
+        });
 
-          productSlug,
+      }
 
-          targetPrice
+    }
+  );
 
+  // =========================
+  // GET USER ALERTS
+  // =========================
+
+  router.get(
+    "/alerts",
+
+    authMiddleware,
+
+    async (req, res) => {
+
+      try {
+
+        const {
+          data,
+          error
+        } =
+          await supabase
+            .from("alerts")
+            .select("*")
+            .eq(
+              "user_id",
+              req.user.id
+            )
+            .order(
+              "created_at",
+              {
+                ascending: false
+              }
+            );
+
+        if (error) {
+
+          return res.json({
+            error:
+              error.message
+          });
+
+        }
+
+        res.json({
+          success: true,
+          alerts:
+            data
         });
 
       } catch (error) {
