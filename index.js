@@ -93,9 +93,34 @@ app.get("/test", (req, res) => {
 });
 
 // =========================
-// CREATE ALERT
+// PROTECTED PROFILE
 // =========================
 
+app.get(
+  "/profile",
+
+  authMiddleware,
+
+  async (req, res) => {
+
+    res.json({
+
+      success: true,
+
+      message:
+        "Protected route working",
+
+      user:
+        req.user
+
+    });
+
+  }
+);
+
+// =========================
+// CREATE ALERT
+// =========================
 app.get("/create-alert", async (req, res) => {
 
   const product =
